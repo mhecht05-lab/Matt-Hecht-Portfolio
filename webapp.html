@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grazing Decision Tool | Matt Hecht</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #08203f 0%, #122a52 100%);
+      color: #eef6ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: min(640px, 95%);
+      background: rgba(18, 39, 70, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1.25rem;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      padding: 2rem;
+    }
+    h1 {
+      margin-top: 0;
+      color: #b8dcff;
+    }
+    p {
+      color: #c9dff6;
+      line-height: 1.65;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 700;
+      color: #dfefff;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.95rem;
+      margin-top: 0.5rem;
+      border-radius: 0.9rem;
+      border: 1px solid #2b4c76;
+      background: #122a52;
+      color: #eef6ff;
+      font-size: 1rem;
+    }
+    .button-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+    button {
+      flex: 1 1 170px;
+      border: none;
+      border-radius: 0.9rem;
+      padding: 0.95rem 1.2rem;
+      cursor: pointer;
+      font-weight: 700;
+      color: #fff;
+      background: #2c8ac7;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background: #1f6d99;
+    }
+    .status {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      line-height: 1.7;
+      min-height: 90px;
+    }
+    .toplink {
+      display: inline-block;
+      color: #9ed5ff;
+      text-decoration: none;
+      margin-bottom: 1rem;
+    }
+    .note {
+      margin-top: 1rem;
+      color: #a8c8ed;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="toplink" href="scratch.html">← Back to Scratch Page</a>
+    <h1>Regenerative Grazing Planner</h1>
+    <p>Use this decision tool to assess pasture capacity, plan solar-friendly grazing rotations, and keep your flock balanced with regenerative land use.</p>
+
+    <label for="pastureArea">Pasture area (acres)</label>
+    <input id="pastureArea" type="number" min="0.5" step="0.1" placeholder="Example: 5" />
+
+    <label for="sheepCount">Number of sheep</label>
+    <input id="sheepCount" type="number" min="1" step="1" placeholder="Example: 25" />
+
+    <label for="grazingDays">Planned grazing days</label>
+    <input id="grazingDays" type="number" min="1" step="1" placeholder="Example: 7" />
+
+    <label for="solarCoverage">Solar coverage (% of pasture)</label>
+    <input id="solarCoverage" type="number" min="0" max="100" step="5" placeholder="Example: 20" />
+
+    <label for="conditionRating">Pasture condition</label>
+    <select id="conditionRating">
+      <option value="1">Low (thin forage, stressed ground)</option>
+      <option value="1.2">Fair (recovering vegetation)</option>
+      <option value="1.4" selected>Good (healthy mixed grasses)</option>
+      <option value="1.6">Strong (vigorous pasture productivity)</option>
+    </select>
+
+    <div class="button-row">
+      <button id="calculateButton">Evaluate Grazing Plan</button>
+      <button id="resetButton">Clear Inputs</button>
+    </div>
+
+    <div class="status" id="status">Enter your pasture details and press evaluate to get a grazing recommendation.</div>
+    <p class="note">Tip: Keeping solar coverage below 40% and allowing rest periods helps maintain soil health and forage regrowth.</p>
+  </div>
+
+  <script>
+    const status = document.getElementById('status');
+    const pastureInput = document.getElementById('pastureArea');
+    const sheepInput = document.getElementById('sheepCount');
+    const daysInput = document.getElementById('grazingDays');
+    const solarInput = document.getElementById('solarCoverage');
+    const conditionInput = document.getElementById('conditionRating');
+    const calculateButton = document.getElementById('calculateButton');
+    const resetButton = document.getElementById('resetButton');
+
+    function formatValue(value) {
+      return `${parseFloat(value.toFixed(1))}`;
+    }
+
+    function evaluateGrazing() {
+      const pasture = parseFloat(pastureInput.value);
+      const sheep = parseInt(sheepInput.value, 10);
+      const days = parseInt(daysInput.value, 10);
+      const solar = parseFloat(solarInput.value);
+      const conditionFactor = parseFloat(conditionInput.value);
+
+      if (!pasture || pasture <= 0 || !sheep || sheep <= 0 || !days || days <= 0 || solar < 0 || solar > 100) {
+        status.innerHTML = 'Please enter valid values for pasture area, sheep count, grazing days, and solar coverage.';
+        return;
+      }
+
+      const foragePerSheepPerDay = 5; // average pounds
+      const dailyDemand = sheep * foragePerSheepPerDay;
+      const totalDemand = dailyDemand * days;
+      const baseForagePerAcre = 1400; // pounds per acre over one week in good growth
+      const availableForage = pasture * baseForagePerAcre * conditionFactor * (days / 7);
+      const shadedAdjustment = 1 - solar * 0.004; // shade reduces growth slightly
+      const effectiveForage = availableForage * Math.max(0.7, shadedAdjustment);
+      const balance = effectiveForage - totalDemand;
+      const stockingRate = sheep / pasture;
+
+      let message = `<strong>Grazing summary:</strong><br>`;
+      message += `Planned stocking rate: <strong>${formatValue(stockingRate)} sheep/acre</strong>.<br>`;
+      message += `Estimated forage supply: <strong>${formatValue(effectiveForage)}</strong> lbs over ${days} day(s).<br>`;
+      message += `Sheep forage demand: <strong>${formatValue(totalDemand)}</strong> lbs over ${days} day(s).<br><br>`;
+
+      if (balance >= 0) {
+        message += '✅ This plan looks balanced for the current conditions.';
+      } else {
+        message += '⚠️ The plan is likely overstocked. Consider reducing flock size, shortening grazing duration, or increasing pasture condition.';
+      }
+
+      if (solar >= 30) {
+        message += '<br><br>Solar guidance: With higher solar coverage, use rotational grazing and keep shade-tolerant ground cover to protect soil and promote regrowth.';
+      } else if (solar > 0) {
+        message += '<br><br>Solar guidance: Moderate solar coverage may boost utility value while still leaving room for effective pasture recovery.';
+      }
+
+      if (conditionFactor <= 1.2) {
+        message += '<br><br>Pasture condition note: Your pasture is weak or rebuilding. Rest plots more often to avoid compaction and overgrazing.';
+      } else if (conditionFactor >= 1.6) {
+        message += '<br><br>Pasture condition note: Healthy ground. Maintain buffer strips and rotational rest periods to keep it productive.';
+      }
+
+      status.innerHTML = message;
+    }
+
+    calculateButton.addEventListener('click', evaluateGrazing);
+    resetButton.addEventListener('click', () => {
+      pastureInput.value = '';
+      sheepInput.value = '';
+      daysInput.value = '';
+      solarInput.value = '';
+      conditionInput.value = '1.4';
+      status.innerHTML = 'Enter your pasture details and press evaluate to get a grazing recommendation.';
+    });
+  </script>
+</body>
+</html>
